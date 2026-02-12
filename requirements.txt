@@ -1,0 +1,7 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+motor>=3.3.0
+beanie>=1.25.0
+baml-py>=0.70.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
