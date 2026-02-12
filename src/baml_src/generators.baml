@@ -2,13 +2,23 @@
 // Codele — BAML AI Agent Definitions
 // ─────────────────────────────────────────────
 
-// ── Data Types ──────────────────────────────
+// ── Data Types (Matches Frontend Schema) ────
+
+enum TestCaseType {
+  Basic
+  Edge
+  Logic
+  Conciseness
+}
 
 class TestCaseSchema {
-  input         string   @description("Input to pass to the solution function")
-  expected_output string @description("Expected output from the solution")
-  is_conciseness_check bool @description("True only for the Sunday conciseness test case")
-  max_lines     int?     @description("Max allowed lines (only when is_conciseness_check is true)")
+  type          TestCaseType @description("Category of the test case")
+  hint          string   @description("A helpful hint shown to the user if they fail this case")
+  input         string   @description("Input arguments as a JSON string, e.g. '[1, 2]'")
+  expected      string   @description("Expected return value as a JSON string, e.g. '3'")
+
+  // For the 'conciseness' type only
+  max_lines     int?     @description("Max lines allowed (only if type is 'conciseness')")
 }
 
 class ProblemSchema {
@@ -16,8 +26,8 @@ class ProblemSchema {
   title         string   @description("Short, catchy problem title")
   difficulty    string   @description("One of: Easy, Medium, Hard")
   description   string   @description("Full problem statement in Markdown")
-  starter_code  string   @description("Boilerplate code given to the player")
-  test_cases    TestCaseSchema[] @description("3-5 test cases for this problem")
+  starter_code  string   @description("Python function signature and boilerplate")
+  test_cases    TestCaseSchema[] @description("Exactly 6 test cases for this problem")
   topics        string[] @description("Relevant topic tags")
 }
 
@@ -56,9 +66,9 @@ function GenerateProblemBatch(
 
   prompt #"
     You are an expert competitive-programming problem author.
-
-    THEME for this week: {{ theme }}
+    THEME: {{ theme }}
     START DATE (Monday): {{ start_date }}
+
     Generate exactly 7 problems, one per day (Monday through Sunday).
     Assign consecutive dates starting from the start_date (YYYY-MM-DD).
 
@@ -68,21 +78,40 @@ function GenerateProblemBatch(
     - Friday & Saturday: Hard
     - Sunday: Medium (but with a special twist — see below)
 
-    SUNDAY SPECIAL RULE:
-    The 7th problem (Sunday) MUST include a "Conciseness" test case.
-    Instead of a performance check, set ONE test case with:
-      is_conciseness_check = true
-      max_lines = <a reasonable limit, e.g. 10-15>
-    This challenges the player to write the shortest possible solution.
+    DESCRIPTION RULES:
+    1. Keep descriptions concise and well-structured in Markdown.
+    2. Include exactly 1 example (MAX 2 if the problem truly requires it).
+    3. The example MUST use the same input/output as the FIRST 'Basic' test case.
+       This way the player can verify their approach immediately.
+    4. Format examples as:
+       ```
+       Input: <input>
+       Output: <output>
+       ```
+
+    TEST CASE RULES:
+    1. Generate exactly 6 test cases per problem.
+    2. The FIRST test case MUST be type='Basic' — this is the example shown
+       in the description.
+    3. Cases 2-5: Mixed types (Basic, Edge, Logic).
+    4. Case 6: ALWAYS type='Conciseness' with a 'max_lines' limit.
+       This challenges the player to write the shortest possible solution.
+    5. 'hint': Short, actionable debugging hint
+       (e.g., "Check how you handle empty arrays").
+    6. 'input': JSON string of the input arguments.
+    7. 'expected': JSON string of the expected return value.
+
+    CODE RULES:
+    1. 'starter_code': Must be valid Python with a function signature and docstring.
 
     NEGATIVE RAG — These titles already exist and MUST NOT be reused:
     {{ existing_titles }}
 
     For each problem provide:
     - A unique, creative title (not in the existing_titles list)
-    - A clear Markdown description with examples
-    - Starter code in Python with a function signature and docstring
-    - 3-5 test cases with input/output pairs
+    - A concise Markdown description with 1 example (see rules above)
+    - Starter code in Python
+    - Exactly 6 test cases
     - Relevant topic tags
 
     {{ ctx.output_format }}

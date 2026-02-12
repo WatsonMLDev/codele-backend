@@ -10,8 +10,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from src.middleware.rate_limit import RateLimitMiddleware
 from src.models.problem import DailyProblem, WeeklyTheme
-from src.routers import admin, problems
+from src.routers import admin, calendar, problems
 
 # ── Load environment variables ──
 load_dotenv()
@@ -63,8 +64,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Rate Limiting (1 requests/min on problem endpoints) ──
+app.add_middleware(
+    RateLimitMiddleware,
+    rate_limit=1,
+    window_seconds=60,
+    protected_paths=["/api/v1/problem"],
+)
+
 # ── Register routers ──
 app.include_router(problems.router)
+app.include_router(calendar.router)
 app.include_router(admin.router)
 
 

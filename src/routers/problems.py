@@ -1,10 +1,15 @@
-"""Problems router — serves the daily coding problem."""
+"""Problems router — serves daily coding problems (Tier 2: full content).
+
+Protected by:
+- Rate limiting (via middleware, 10 req/min/IP)
+- Time-lock: cannot fetch problems for future dates
+"""
 
 import hashlib
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from src.models.problem import DailyProblem
 
@@ -20,6 +25,8 @@ async def get_today_problem():
     If no problem exists for today's date, use the "Infinite Fallback"
     strategy: hash the date string to deterministically pick an existing
     problem from the database so players always have something to solve.
+
+    Returns camelCase JSON matching the React frontend schema.
     """
     today_key = datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -27,7 +34,7 @@ async def get_today_problem():
     problem = await DailyProblem.get(today_key)
 
     if problem:
-        return problem
+        return problem.model_dump(by_alias=True)
 
     # ── Infinite Fallback ──
     logger.warning("No problem for %s — activating Infinite Fallback", today_key)
@@ -54,7 +61,42 @@ async def get_today_problem():
     )
 
     return {
-        **fallback.model_dump(),
+        **fallback.model_dump(by_alias=True),
         "_fallback": True,
         "_original_date": today_key,
     }
+
+
+@router.get("/{date}")
+async def get_problem_by_date(date: str):
+    """Return a specific problem by date.
+
+    Time-locked: cannot fetch problems for future dates.
+    """
+    # Validate date format
+    try:
+        requested = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid date format. Use YYYY-MM-DD.",
+        )
+
+    # ── Time-Lock: block future dates ──
+    today = datetime.utcnow()
+    if requested.date() > today.date():
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot access problems for future dates.",
+        )
+
+    # Fetch the problem
+    problem = await DailyProblem.get(date)
+
+    if not problem:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No problem found for {date}.",
+        )
+
+    return problem.model_dump(by_alias=True)

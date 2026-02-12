@@ -1,33 +1,45 @@
-"""Beanie document models for the Codele database."""
+"""Beanie document models for the Codele database.
+
+Uses Pydantic v2 serialization aliases so that the API outputs camelCase
+keys matching the React frontend, while Python code uses snake_case.
+"""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from beanie import Document
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TestCase(BaseModel):
     """A single test case for a coding problem."""
 
-    input: str = Field(..., description="Input to pass to the solution function")
-    expected_output: str = Field(..., description="Expected output from the solution")
-    is_conciseness_check: bool = Field(
-        default=False,
-        description="If True, this test checks solution length instead of correctness",
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(default=0, description="Sequential test case ID (1-6)")
+    type: Literal["basic", "edge", "logic", "conciseness"] = Field(
+        ..., description="Category of test case"
+    )
+    hint: str = Field(..., description="Tooltip hint shown on failure")
+    input: str = Field(..., description="Input arguments as JSON string")
+    expected_output: str = Field(
+        ...,
+        alias="expected",
+        description="Expected return value as JSON string",
     )
     max_lines: Optional[int] = Field(
         default=None,
-        description="Maximum allowed lines of code (only used when is_conciseness_check=True)",
+        description="Max lines allowed (only for conciseness type)",
     )
 
 
 class DailyProblem(Document):
     """A single daily coding problem served to players."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str = Field(
-        ...,
-        description="Date key in YYYY-MM-DD format, e.g. '2026-02-12'",
+        ..., description="Date key in YYYY-MM-DD format, e.g. '2026-02-12'"
     )
     title: str = Field(..., description="Human-readable problem title")
     difficulty: str = Field(
@@ -37,10 +49,14 @@ class DailyProblem(Document):
         ..., description="Full problem description in Markdown"
     )
     starter_code: str = Field(
-        ..., description="Boilerplate code given to the player"
+        ...,
+        alias="starterCode",
+        description="Boilerplate code given to the player",
     )
     test_cases: List[TestCase] = Field(
-        default_factory=list, description="List of test cases"
+        default_factory=list,
+        alias="testCases",
+        description="List of test cases (exactly 6)",
     )
     topics: List[str] = Field(
         default_factory=list,
@@ -48,7 +64,7 @@ class DailyProblem(Document):
     )
     embedding: Optional[List[float]] = Field(
         default=None,
-        description="Vector embedding for semantic search (e.g. 768-dim)",
+        description="Vector embedding for semantic search",
     )
 
     class Settings:
@@ -59,8 +75,7 @@ class WeeklyTheme(Document):
     """Tracks the theme chosen for each week's problem batch."""
 
     week_id: str = Field(
-        ...,
-        description="ISO week key, e.g. '2026-W07'",
+        ..., description="ISO week key, e.g. '2026-W07'"
     )
     theme: str = Field(..., description="The coding topic for this week")
     generated_at: datetime = Field(

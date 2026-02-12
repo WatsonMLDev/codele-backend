@@ -22,13 +22,10 @@ async def generate_next_week() -> dict:
         Summary dict with week_id, theme, and count of problems created.
     """
     # ── Lazy import of the BAML async client ──
-    # The baml_client is generated code; importing at call-time avoids
-    # import errors when the client hasn't been generated yet.
     from src.baml_client.baml_client.async_client import b  # type: ignore[import-untyped]
 
     # ── 1. Determine the target week ──
     today = datetime.utcnow()
-    # Find next Monday
     days_until_monday = (7 - today.weekday()) % 7
     if days_until_monday == 0:
         days_until_monday = 7  # always target *next* Monday
@@ -68,21 +65,27 @@ async def generate_next_week() -> dict:
     # ── 6. Convert BAML output → Beanie documents ──
     problems = []
     for schema in batch:
+        # Map BAML TestCaseSchema → Beanie TestCase with sequential IDs
+        mapped_cases = []
+        for idx, tc in enumerate(schema.test_cases):
+            mapped_cases.append(
+                TestCase(
+                    id=idx + 1,
+                    type=tc.type.lower(),
+                    hint=tc.hint,
+                    input=tc.input,
+                    expected=tc.expected,  # populates expected_output via alias
+                    max_lines=tc.max_lines,
+                )
+            )
+
         problem = DailyProblem(
             id=schema.id,
             title=schema.title,
             difficulty=schema.difficulty,
             description=schema.description,
-            starter_code=schema.starter_code,
-            test_cases=[
-                TestCase(
-                    input=tc.input,
-                    expected_output=tc.expected_output,
-                    is_conciseness_check=tc.is_conciseness_check,
-                    max_lines=tc.max_lines,
-                )
-                for tc in schema.test_cases
-            ],
+            starterCode=schema.starter_code,  # alias for starter_code
+            testCases=mapped_cases,            # alias for test_cases
             topics=schema.topics,
         )
         problems.append(problem)
