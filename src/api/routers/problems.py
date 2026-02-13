@@ -3,68 +3,57 @@
 Protected by:
 - Rate limiting (via middleware, 10 req/min/IP)
 - Time-lock: cannot fetch problems for future dates
+
+Adapter Pattern: transforms Beanie output to be byte-for-byte compatible
+with the React frontend, without any frontend changes.
 """
 
-import hashlib
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 
-from src.models.problem import DailyProblem
+from src.shared.models.problem import DailyProblem
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/problem", tags=["Problems"])
 
 
+def _adapt_for_frontend(data: dict) -> dict:
+    """Transform a Beanie-serialized problem dict for exact frontend compatibility.
+
+    1. Rename '_id' → 'id'  (MongoDB uses _id; React expects id)
+    2. Remove 'embedding'   (internal field, not needed by frontend)
+    """
+    # ── 1. _id → id ──
+    if "_id" in data:
+        data["id"] = data.pop("_id")
+
+    # ── 2. Strip embedding ──
+    data.pop("embedding", None)
+
+    return data
+
+
 @router.get("/today")
 async def get_today_problem():
     """Return today's coding problem.
 
-    If no problem exists for today's date, use the "Infinite Fallback"
-    strategy: hash the date string to deterministically pick an existing
-    problem from the database so players always have something to solve.
-
     Returns camelCase JSON matching the React frontend schema.
+    If no problem exists for today, returns 404.
     """
     today_key = datetime.utcnow().strftime("%Y-%m-%d")
 
-    # Try to fetch today's problem directly
     problem = await DailyProblem.get(today_key)
 
-    if problem:
-        return problem.model_dump(by_alias=True)
-
-    # ── Infinite Fallback ──
-    logger.warning("No problem for %s — activating Infinite Fallback", today_key)
-
-    all_problems = await DailyProblem.find_all().to_list()
-
-    if not all_problems:
+    if not problem:
         raise HTTPException(
             status_code=404,
-            detail="No problems available in the database yet. "
-            "Trigger generation first via POST /api/v1/admin/trigger-generation",
+            detail=f"No problem available for {today_key}.",
         )
 
-    # Deterministic selection: hash the date and pick by index
-    date_hash = int(hashlib.sha256(today_key.encode()).hexdigest(), 16)
-    index = date_hash % len(all_problems)
-    fallback = all_problems[index]
-
-    logger.info(
-        "Fallback selected problem '%s' (index %d of %d)",
-        fallback.title,
-        index,
-        len(all_problems),
-    )
-
-    return {
-        **fallback.model_dump(by_alias=True),
-        "_fallback": True,
-        "_original_date": today_key,
-    }
+    return _adapt_for_frontend(problem.model_dump(by_alias=True))
 
 
 @router.get("/{date}")
@@ -99,4 +88,4 @@ async def get_problem_by_date(date: str):
             detail=f"No problem found for {date}.",
         )
 
-    return problem.model_dump(by_alias=True)
+    return _adapt_for_frontend(problem.model_dump(by_alias=True))

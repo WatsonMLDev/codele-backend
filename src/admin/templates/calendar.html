@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Calendar — Codele Admin{% endblock %}
+
+{% block topbar_right %}
+<div
+    class="buffer-badge {% if buffer >= 14 %}buffer-good{% elif buffer >= 7 %}buffer-warn{% else %}buffer-bad{% endif %}">
+    {{ buffer }} days buffered
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Flash messages -->
+{% if request.query_params.get('generated') %}
+<div class="flash flash-success">
+    ✅ Generated {{ request.query_params.get('generated') }} problems!
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+</div>
+{% endif %}
+
+<!-- Month header -->
+<div class="calendar-header">
+    <a href="/?year={{ prev_year }}&month={{ prev_month }}" class="month-nav">← </a>
+    <h1 class="month-title">{{ month_name }} {{ year }}</h1>
+    <a href="/?year={{ next_year }}&month={{ next_month }}" class="month-nav"> →</a>
+    <div class="calendar-stats">
+        <span class="stat">{{ num_problems }}/{{ num_days }} filled</span>
+        <span class="stat stat-gap">{{ num_days - num_problems }} gaps</span>
+    </div>
+</div>
+
+<!-- Calendar grid -->
+<div class="calendar-days-header">
+    <div class="day-header">Mon</div>
+    <div class="day-header">Tue</div>
+    <div class="day-header">Wed</div>
+    <div class="day-header">Thu</div>
+    <div class="day-header">Fri</div>
+    <div class="day-header">Sat</div>
+    <div class="day-header">Sun</div>
+</div>
+
+<div class="calendar-body">
+    {% for week in weeks %}
+    {# Collect theme starts in this row for displaying labels #}
+    {% set ns = namespace(labels=[]) %}
+    {% for cell in week if cell and cell.theme_start %}
+    {% set ns.labels = ns.labels + [cell] %}
+    {% endfor %}
+
+    <div class="week-row">
+        {# Theme labels above the row #}
+        {% if ns.labels %}
+        <div class="theme-labels-row">
+            {% for label_cell in ns.labels %}
+            <div class="theme-tag"
+                style="border-color: {{ label_cell.theme_color }}; color: {{ label_cell.theme_color }}; cursor: pointer;"
+                data-id="{{ label_cell.theme_id }}" title="Click to edit theme">
+                <span class="theme-tag-name">{{ label_cell.theme }}</span>
+                <span class="theme-tag-id">{{ label_cell.theme_label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="week-cells">
+            {% for cell in week %}
+            {% if cell is none %}
+            <div class="day-cell empty"></div>
+            {% else %}
+            <div class="day-cell {% if cell.problem %}has-problem{% else %}no-problem{% endif %}{% if cell.is_today %} today{% endif %}{% if cell.theme %} themed-cell{% endif %}{% if cell.theme_start %} theme-start{% endif %}{% if cell.theme_end %} theme-end{% endif %}"
+                data-date="{{ cell.date_key }}" {% if cell.problem %}draggable="true" {% endif %} {% if cell.theme
+                %}style="border-color: {{ cell.theme_color }};" {% endif %}>
+                <div class="day-num">{{ cell.day }}</div>
+                {% if cell.problem %}
+                <div class="diff-badge diff-{{ cell.problem.difficulty | lower }}">
+                    {{ cell.problem.difficulty }}
+                </div>
+                <div class="problem-title">{{ cell.problem.title }}</div>
+                <a href="/editor/{{ cell.date_key }}" class="cell-link" title="Edit"></a>
+                {% else %}
+                <div class="empty-label">Empty</div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Themes section -->
+<div class="themes-section">
+    <h2>🎨 Recent Themes</h2>
+    <div class="themes-list">
+        {% for t in themes %}
+        <div class="theme-chip">
+            <span class="theme-name">{{ t.theme }}</span>
+            <span class="theme-meta">{% if t.start_date %}{{ t.start_date }} → {{ t.end_date }} ({{ t.count }}){% elif
+                t.week_id %}{{ t.week_id }}{% endif %}</span>
+        </div>
+        {% endfor %}
+        {% if not themes %}
+        <p class="muted">No themes recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/calendar.js"></script>
+{% endblock %}

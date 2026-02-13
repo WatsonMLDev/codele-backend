@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Generate — Codele Admin{% endblock %}
+
+{% block nav_links %}
+<a href="/" class="nav-link">Calendar</a>
+<a href="/generate" class="nav-link active">Generate</a>
+{% endblock %}
+
+{% block topbar_right %}
+<div
+    class="buffer-badge {% if buffer >= 14 %}buffer-good{% elif buffer >= 7 %}buffer-warn{% else %}buffer-bad{% endif %}">
+    {{ buffer }} days buffered
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="generate-page">
+    <!-- ── STEP 1: PLAN ── -->
+    <div id="stepPlan" class="wizard-step active">
+        <div class="wizard-header">
+            <div class="wizard-header-row">
+                <div>
+                    <h1>📅 Plan Your Batches</h1>
+                    <p class="subtitle">Click dates on the calendar to select a range, then assign a theme. Max 7 days
+                        per batch.</p>
+                </div>
+                <div class="gen-info-cards">
+                    <div class="info-card">
+                        <div class="info-label">Buffer</div>
+                        <div
+                            class="info-value {% if buffer >= 14 %}text-green{% elif buffer >= 7 %}text-yellow{% else %}text-red{% endif %}">
+                            {{ buffer }}d</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Existing</div>
+                        <div class="info-value">{{ existing_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="planner-layout">
+            <!-- Main: Full calendar -->
+            <div class="planner-calendar">
+                <div class="cal-month-header">
+                    <a href="/generate?year={{ prev_year }}&month={{ prev_month }}" class="month-nav">←</a>
+                    <h2>{{ month_name }} {{ year }}</h2>
+                    <a href="/generate?year={{ next_year }}&month={{ next_month }}" class="month-nav">→</a>
+                </div>
+                <div class="cal-days-header">
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                    <div>Sun</div>
+                </div>
+                <div id="calGrid" class="cal-grid">
+                    <!-- JS renders this -->
+                </div>
+
+                <!-- Selection banner (appears when clicking dates) -->
+                <div id="selectionBanner" class="selection-banner" style="display: none;">
+                    <div class="sel-info">
+                        <span id="selRange">Feb 10 → Feb 16</span>
+                        <span id="selCount" class="sel-count">7 days</span>
+                    </div>
+                    <div class="sel-theme">
+                        <select id="selThemeMode">
+                            <option value="auto">🤖 AI Auto-Pick</option>
+                            <option value="manual">✍️ Manual</option>
+                        </select>
+                        <input type="text" id="selThemeName" placeholder="Theme name..." style="display: none;">
+                    </div>
+                    <div class="sel-actions">
+                        <button class="btn btn-primary btn-sm" id="confirmBatchBtn">✓ Confirm Batch</button>
+                        <button class="btn btn-secondary btn-sm" id="cancelSelBtn">✕ Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar: Batch list -->
+            <div class="batch-panel">
+                <h2>Batches</h2>
+                <div id="batchList" class="batch-list">
+                    <p class="muted" style="text-align:center; padding:16px;">Click dates on the calendar to start.</p>
+                </div>
+
+                <div class="batch-summary" id="batchSummary" style="display: none;">
+                    <div class="summary-stat">
+                        <span class="summary-label">Total Batches</span>
+                        <span class="summary-value" id="totalBatches">0</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="summary-label">Total Problems</span>
+                        <span class="summary-value" id="totalProblems">0</span>
+                    </div>
+                    <button class="btn btn-accent btn-lg" id="toReviewBtn" style="width: 100%; margin-top: 8px;">
+                        Next: Review →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── STEP 2: RUNNER ── -->
+    <div id="stepRunner" class="wizard-step">
+        <div class="runner-header">
+            <h1>🚀 Batch Execution</h1>
+            <p class="subtitle">Review prompts, execute batches sequentially, and inspect results.</p>
+            <button class="btn btn-secondary btn-sm" id="backToPlanBtn">← Back to Plan</button>
+        </div>
+
+        <div class="runner-layout">
+            <!-- Sidebar: Queue -->
+            <div class="runner-sidebar">
+                <h3>Queue</h3>
+                <div id="runnerList" class="runner-list">
+                    <!-- JS renders queue items here -->
+                </div>
+            </div>
+
+            <!-- Main: Active Batch -->
+            <div class="runner-main">
+                <div id="runnerCard" class="runner-card">
+                    <!-- JS renders active batch details here -->
+                    <div class="placeholder-runner">Select a batch to begin...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data island -->
+<script id="generateDataJSON" type="application/json">
+{
+    "year": {{ year }},
+    "month": {{ month }},
+    "nextOpenDate": "{{ next_open_date }}",
+    "recentThemes": {{ recent_themes | tojson }},
+    "existingTitles": {{ existing_titles | tojson }},
+    "existingCount": {{ existing_count }},
+    "scheduledDates": {{ scheduled_dates | tojson }},
+    "buffer": {{ buffer }}
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/generate.js"></script>
+{% endblock %}

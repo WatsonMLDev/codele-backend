@@ -25,11 +25,7 @@ class TestCase(BaseModel):
     expected_output: str = Field(
         ...,
         alias="expected",
-        description="Expected return value as JSON string",
-    )
-    max_lines: Optional[int] = Field(
-        default=None,
-        description="Max lines allowed (only for conciseness type)",
+        description="Expected return value as JSON string. For conciseness tests, this is the max line count.",
     )
 
 
@@ -72,12 +68,26 @@ class DailyProblem(Document):
 
 
 class WeeklyTheme(Document):
-    """Tracks the theme chosen for each week's problem batch."""
+    """Tracks the theme chosen for a batch of problems.
 
-    week_id: str = Field(
-        ..., description="ISO week key, e.g. '2026-W07'"
+    Themes are flexible — can span any number of days (not locked to 7).
+    Can be algorithmic topics, holiday themes, semantic themes, etc.
+    """
+
+    theme: str = Field(..., description="The theme name (any topic)")
+    start_date: str = Field(
+        default="", description="First date in the batch, YYYY-MM-DD"
     )
-    theme: str = Field(..., description="The coding topic for this week")
+    end_date: str = Field(
+        default="", description="Last date in the batch, YYYY-MM-DD"
+    )
+    count: int = Field(
+        default=7, description="Number of problems in this batch"
+    )
+    # Legacy field — kept for backward compatibility with existing docs
+    week_id: Optional[str] = Field(
+        default=None, description="ISO week key (legacy), e.g. '2026-W07'"
+    )
     generated_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="Timestamp when this batch was generated",

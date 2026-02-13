@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ date_key }} — Codele Admin{% endblock %}
+
+{% block nav_links %}
+<a href="/" class="nav-link">← Calendar</a>
+<a href="#" class="nav-link active">Editor: {{ date_key }}</a>
+{% endblock %}
+
+{% block content %}
+<!-- Flash messages -->
+{% if request.query_params.get('saved') %}
+<div class="flash flash-success">
+    ✅ Changes saved!
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+</div>
+{% endif %}
+{% if request.query_params.get('moved') %}
+<div class="flash flash-success">
+    📦 Problem moved to {{ date_key }}!
+    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+</div>
+{% endif %}
+
+{% if problem %}
+<form method="post" action="/editor/{{ date_key }}/save" class="editor-form" id="editorForm">
+    <div class="editor-grid">
+        <!-- Left column: main fields -->
+        <div class="editor-main">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" value="{{ problem.title }}" class="input-lg" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty" name="difficulty" class="select-diff">
+                        <option value="Easy" {% if problem.difficulty=="Easy" %}selected{% endif %}>🟢 Easy</option>
+                        <option value="Medium" {% if problem.difficulty=="Medium" %}selected{% endif %}>🟡 Medium
+                        </option>
+                        <option value="Hard" {% if problem.difficulty=="Hard" %}selected{% endif %}>🔴 Hard</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="topics">Topics</label>
+                    <input type="text" id="topics" name="topics" value="{{ problem.topics | join(', ') }}"
+                        placeholder="Two Pointers, Arrays">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description (Markdown)</label>
+                <textarea id="description" name="description" rows="12">{{ problem.description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="starter_code">Starter Code</label>
+                <textarea id="starter_code" name="starter_code" rows="8"
+                    class="code-textarea">{{ problem.starter_code }}</textarea>
+            </div>
+        </div>
+
+        <!-- Right column: test cases -->
+        <div class="editor-sidebar">
+            <h3>Test Cases <span class="tc-count">({{ problem.test_cases | length }})</span></h3>
+
+            <div class="test-cases-list" id="testCasesList">
+                {% for tc in problem.test_cases %}
+                <div class="tc-card" data-index="{{ loop.index0 }}">
+                    <div class="tc-header">
+                        <span class="tc-num">#{{ loop.index }}</span>
+                        <select class="tc-type" data-field="type">
+                            <option value="basic" {% if tc.type=="basic" %}selected{% endif %}>Basic</option>
+                            <option value="edge" {% if tc.type=="edge" %}selected{% endif %}>Edge</option>
+                            <option value="logic" {% if tc.type=="logic" %}selected{% endif %}>Logic</option>
+                            <option value="conciseness" {% if tc.type=="conciseness" %}selected{% endif %}>Conciseness
+                            </option>
+                        </select>
+                        <button type="button" class="btn-icon btn-delete-tc" title="Remove">×</button>
+                    </div>
+                    <div class="tc-body">
+                        <label>Input</label>
+                        <input type="text" data-field="input" value="{{ tc.input }}" class="tc-input">
+                        <label>Expected</label>
+                        <input type="text" data-field="expected" value="{{ tc.expected_output }}" class="tc-input">
+                        <label>Hint</label>
+                        <input type="text" data-field="hint" value="{{ tc.hint }}" class="tc-input">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" class="btn btn-secondary btn-add-tc" id="addTestCase">+ Add Test Case</button>
+
+            <!-- Hidden field for serialized test cases -->
+            <input type="hidden" name="test_cases_json" id="testCasesJson">
+        </div>
+    </div>
+
+    <div class="editor-actions">
+        <button type="submit" class="btn btn-primary btn-lg">💾 Save Changes</button>
+    </div>
+</form>
+
+<!-- Move / Delete section -->
+<div class="danger-zone">
+    <h3>Move or Delete</h3>
+    <div class="form-row">
+        <form method="post" action="/editor/{{ date_key }}/move" class="inline-form">
+            <label>Move to date:</label>
+            <input type="date" name="new_date" required>
+            <button type="submit" class="btn btn-secondary">📦 Move</button>
+        </form>
+        <form method="post" action="/editor/{{ date_key }}/delete" class="inline-form"
+            onsubmit="return confirm('Delete this problem? This cannot be undone.')">
+            <button type="submit" class="btn btn-danger">🗑️ Delete</button>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <h2>No problem for {{ date_key }}</h2>
+    <p>This date slot is empty. Generate problems from the <a href="/">Calendar</a> page.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/editor.js"></script>
+{% endblock %}

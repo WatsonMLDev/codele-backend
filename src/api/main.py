@@ -1,21 +1,14 @@
 """Codele Backend — FastAPI Application Entrypoint."""
 
 import logging
-import os
 from contextlib import asynccontextmanager
 
-from beanie import init_beanie
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.middleware.rate_limit import RateLimitMiddleware
-from src.models.problem import DailyProblem, WeeklyTheme
-from src.routers import admin, calendar, problems
-
-# ── Load environment variables ──
-load_dotenv()
+from src.api.middleware.rate_limit import RateLimitMiddleware
+from src.api.routers import calendar, problems, themes
+from src.shared.db import init_db, close_db
 
 # ── Logging ──
 logging.basicConfig(
@@ -29,22 +22,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize Motor + Beanie on startup; close the connection on shutdown."""
-    mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-    db_name = os.getenv("MONGODB_DB", "codele")
-
-    logger.info("Connecting to MongoDB (db=%s)…", db_name)
-    client = AsyncIOMotorClient(mongo_uri)
-
-    await init_beanie(
-        database=client[db_name],
-        document_models=[DailyProblem, WeeklyTheme],
-    )
-    logger.info("Beanie initialized — database ready.")
-
-    yield  # app is running
-
-    client.close()
-    logger.info("MongoDB connection closed.")
+    await init_db()
+    yield
+    await close_db()
 
 
 # ── FastAPI app ──
@@ -64,10 +44,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Rate Limiting (1 requests/min on problem endpoints) ──
+# ── Rate Limiting (5 requests/min on problem endpoints) ──
 app.add_middleware(
     RateLimitMiddleware,
-    rate_limit=1,
+    rate_limit=10,
     window_seconds=60,
     protected_paths=["/api/v1/problem"],
 )
@@ -75,7 +55,7 @@ app.add_middleware(
 # ── Register routers ──
 app.include_router(problems.router)
 app.include_router(calendar.router)
-app.include_router(admin.router)
+app.include_router(themes.router)
 
 
 # ── Health check ──
