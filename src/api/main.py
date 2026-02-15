@@ -6,14 +6,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.middleware.rate_limit import RateLimitMiddleware
 from src.api.routers import calendar, problems, themes
 from src.shared.db import init_db, close_db
+from src.shared.config import load_config
+
+# ── Configuration ──
+config = load_config()
 
 # ── Logging ──
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    format=config.logging.get("format", "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"),
 )
 logger = logging.getLogger(__name__)
 
@@ -29,28 +32,22 @@ async def lifespan(app: FastAPI):
 
 # ── FastAPI app ──
 app = FastAPI(
-    title="Codele API",
-    description="Backend for the Codele daily coding game.",
-    version="0.1.0",
+    title=config.project.get("name", "Codele API"),
+    description=config.project.get("description", "Backend for the Codele daily coding game."),
+    version=config.project.get("version", "0.1.0"),
     lifespan=lifespan,
 )
 
 # ── CORS (allow all during development — tighten for production) ──
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.cors.get("allowed_origins", ["*"]),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Rate Limiting (5 requests/min on problem endpoints) ──
-app.add_middleware(
-    RateLimitMiddleware,
-    rate_limit=10,
-    window_seconds=60,
-    protected_paths=["/api/v1/problem"],
-)
+
 
 # ── Register routers ──
 app.include_router(problems.router)

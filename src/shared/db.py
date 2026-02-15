@@ -23,7 +23,7 @@ _client: AsyncIOMotorClient | None = None
 async def init_db() -> AsyncIOMotorClient:
     """Connect to MongoDB and initialize Beanie. Returns the Motor client."""
     global _client
-
+    
     mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     db_name = os.getenv("MONGODB_DB", "codele")
 

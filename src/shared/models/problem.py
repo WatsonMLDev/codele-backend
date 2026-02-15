@@ -74,6 +74,8 @@ class WeeklyTheme(Document):
     Can be algorithmic topics, holiday themes, semantic themes, etc.
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     theme: str = Field(..., description="The theme name (any topic)")
     start_date: str = Field(
         default="", description="First date in the batch, YYYY-MM-DD"
@@ -81,8 +83,8 @@ class WeeklyTheme(Document):
     end_date: str = Field(
         default="", description="Last date in the batch, YYYY-MM-DD"
     )
-    count: int = Field(
-        default=7, description="Number of problems in this batch"
+    problem_count: int = Field(
+        default=7, alias="count", description="Number of problems in this batch"
     )
     # Legacy field — kept for backward compatibility with existing docs
     week_id: Optional[str] = Field(

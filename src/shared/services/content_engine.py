@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 
 from src.shared.models.problem import DailyProblem, TestCase, WeeklyTheme
+from src.admin.baml_client.baml_client.async_client import b
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,6 @@ async def _pick_theme(force_theme: Optional[str] = None) -> str:
     """Pick a theme — either forced or AI-selected avoiding recent repeats."""
     if force_theme:
         return force_theme
-
-    from src.baml_client.baml_client.async_client import b  # type: ignore[import-untyped]
 
     recent_themes_docs = await WeeklyTheme.find_all(
         sort=[("-generated_at", -1)],
@@ -132,7 +131,7 @@ async def generate_batch(
     Returns:
         Summary dict with theme, count, and date range.
     """
-    from src.baml_client.baml_client.async_client import b  # type: ignore[import-untyped]
+    
 
     # ── 1. Determine start date ──
     if start_date is None:
@@ -176,7 +175,7 @@ async def generate_batch(
         theme=chosen_theme,
         start_date=start_str,
         end_date=end_str,
-        count=len(problems),
+        problem_count=len(problems),
         generated_at=datetime.utcnow(),
     )
     await theme_record.insert()

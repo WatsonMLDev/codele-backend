@@ -95,7 +95,7 @@
         {% for t in themes %}
         <div class="theme-chip">
             <span class="theme-name">{{ t.theme }}</span>
-            <span class="theme-meta">{% if t.start_date %}{{ t.start_date }} → {{ t.end_date }} ({{ t.count }}){% elif
+            <span class="theme-meta">{% if t.start_date %}{{ t.start_date }} → {{ t.end_date }} ({{ t.problem_count }}){% elif
                 t.week_id %}{{ t.week_id }}{% endif %}</span>
         </div>
         {% endfor %}

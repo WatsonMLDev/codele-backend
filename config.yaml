@@ -1,0 +1,22 @@
+project:
+  name: "Codele API"
+  description: "Backend for the Codele daily coding game."
+  version: "0.1.0"
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+cors:
+  allowed_origins:
+    - "https://codele.watsonml.dev"
+    - "https://www.codele.watsonml.dev"
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+    - "http://127.0.0.1:3000"
+    - "http://127.0.0.1:5173"
+
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"

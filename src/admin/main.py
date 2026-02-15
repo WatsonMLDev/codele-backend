@@ -20,10 +20,15 @@ from fastapi.templating import Jinja2Templates
 
 from src.shared.db import init_db, close_db
 from src.shared.models.problem import DailyProblem, TestCase, WeeklyTheme
+from src.shared.config import load_config
+from src.shared.services.content_engine import generate_batch, _find_next_open_date
+from beanie import PydanticObjectId
+
+config = load_config()
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    format=config.logging.get("format", "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"),
 )
 logger = logging.getLogger(__name__)
 
@@ -263,7 +268,7 @@ async def move_problem(date_key: str, new_date: str = Form(...)):
 
 @app.get("/generate", response_class=HTMLResponse)
 async def generate_page(request: Request, year: int = None, month: int = None):
-    from src.shared.services.content_engine import _find_next_open_date
+
 
     buffer = await _get_buffer_depth()
     next_open = await _find_next_open_date()
@@ -313,7 +318,7 @@ async def api_generate_batches(request: Request):
     Each batch's auto-theme call will see all previously generated themes,
     preventing the AI from picking duplicate themes within a single plan.
     """
-    from src.shared.services.content_engine import generate_batch
+
 
     body = await request.json()
     batches = body.get("batches", [])
@@ -356,7 +361,7 @@ class ThemeUpdateRequest(BaseModel):
 
 @app.post("/api/theme/update")
 async def update_theme(payload: ThemeUpdateRequest):
-    from beanie import PydanticObjectId
+
     try:
         theme = await WeeklyTheme.get(PydanticObjectId(payload.theme_id))
         if not theme:
@@ -366,7 +371,8 @@ async def update_theme(payload: ThemeUpdateRequest):
         await theme.save()
         return {"status": "success", "theme": theme.theme}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to update theme")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 # ── API endpoint for drag-and-drop moves (AJAX) ──
