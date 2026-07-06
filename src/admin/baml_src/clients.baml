@@ -14,9 +14,7 @@ generator target {
 client<llm> GeminiFlash {
   provider "google-ai"
   options {
-    model "gemini-3-flash-preview"
+    model "gemini-3.1-flash-lite"
     api_key env.GOOGLE_API_KEY
-    max_tokens 8192
-    temperature 0.7
   }
 }
