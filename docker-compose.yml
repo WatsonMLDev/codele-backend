@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: codele-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017" # Bound to localhost for safety
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      # Sets up basic auth on first run (optional but recommended)
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS:-secret}
+
+  api:
+    build: .
+    container_name: codele-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Cloudflare tunnel will route to this
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      # Connects to the mongodb container over the internal docker network
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-secret}@mongodb:27017/codele?authSource=admin
+      - ENV=production
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  admin:
+    build: .
+    container_name: codele-admin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8501:8501" # Admin panel explicitly bound to localhost ONLY
+    depends_on:
+      - mongodb
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-secret}@mongodb:27017/codele?authSource=admin
+    command: ["uvicorn", "src.admin.main:app", "--host", "0.0.0.0", "--port", "8501"]
+
+volumes:
+  mongodb_data:

@@ -83,6 +83,8 @@ Both servers share a common layer under `src/shared/` which contains the databas
 
 - **Python 3.11+**
 - **MongoDB Atlas** account (or a local MongoDB instance)
+  - To create and start a local MongoDB instance using Docker, run: `docker run -d --name codele-mongo -p 27017:27017 mongo:7`
+  - To start the container if it's already created but stopped, run: `docker start codele-mongo`
 - **Google AI API key** (for Gemini — used by the content engine)
 - **BAML CLI** (`pip install baml-py`) — required to regenerate the AI client if you modify `.baml` files
 
