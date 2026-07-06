@@ -274,9 +274,10 @@ async def generate_page(request: Request, year: int = None, month: int = None):
     next_open = await _find_next_open_date()
     next_open_str = next_open.strftime("%Y-%m-%d")
 
-    # Default to the month of the next open date
-    year = year or next_open.year
-    month = month or next_open.month
+    # Default to the current calendar month
+    now = datetime.utcnow()
+    year = year or now.year
+    month = month or now.month
 
     # Get data for prompt preview
     recent_themes_docs = await WeeklyTheme.find_all(

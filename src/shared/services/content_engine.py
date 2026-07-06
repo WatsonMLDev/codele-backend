@@ -43,7 +43,7 @@ async def _find_next_open_date() -> date:
     if generation is triggered late.
     """
     latest = await DailyProblem.find_all(
-        sort=[("-_id", -1)], limit=1
+        sort=[("_id", -1)], limit=1
     ).to_list()
 
     if latest:
