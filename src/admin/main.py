@@ -170,7 +170,7 @@ async def calendar_page(request: Request, year: int = None, month: int = None):
     next_date = date(year, month, 28) + timedelta(days=4)
     next_date = next_date.replace(day=1)
 
-    return templates.TemplateResponse("calendar.html", {
+    return templates.TemplateResponse(request, "calendar.html", {
         "request": request,
         **data,
         "prev_year": prev_date.year,
@@ -183,7 +183,7 @@ async def calendar_page(request: Request, year: int = None, month: int = None):
 @app.get("/editor/{date_key}", response_class=HTMLResponse)
 async def editor_page(request: Request, date_key: str):
     problem = await DailyProblem.get(date_key)
-    return templates.TemplateResponse("editor.html", {
+    return templates.TemplateResponse(request, "editor.html", {
         "request": request,
         "date_key": date_key,
         "problem": problem,
@@ -293,7 +293,7 @@ async def generate_page(request: Request, year: int = None, month: int = None):
     next_date = date(year, month, 28) + timedelta(days=4)
     next_date = next_date.replace(day=1)
 
-    return templates.TemplateResponse("generate.html", {
+    return templates.TemplateResponse(request, "generate.html", {
         "request": request,
         "buffer": buffer,
         "year": year,
