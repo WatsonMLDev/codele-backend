@@ -9,7 +9,7 @@ with the React frontend, without any frontend changes.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
 
@@ -72,8 +72,9 @@ async def get_problem_by_date(date: str):
         )
 
     # ── Time-Lock: block future dates ──
-    today = datetime.utcnow()
-    if requested.date() > today.date():
+    # Allow up to UTC+14 (Line Islands) which is the maximum timezone on Earth.
+    max_earth_time = datetime.utcnow() + timedelta(hours=14)
+    if requested.date() > max_earth_time.date():
         raise HTTPException(
             status_code=403,
             detail="Cannot access problems for future dates.",
