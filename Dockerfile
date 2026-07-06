@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Generate the BAML client since it is ignored by git
+RUN baml-cli generate --from src/admin/baml_src
+
 # Expose API and Admin ports
 EXPOSE 8000
 EXPOSE 8501
