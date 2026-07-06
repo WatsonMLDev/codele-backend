@@ -16,9 +16,7 @@ client<llm> GeminiFlash {
   options {
     model "gemini-3-flash-preview"
     api_key env.GOOGLE_API_KEY
-    generationConfig {
-      temperature 0.7
-      maxOutputTokens 8192
-    }
+    max_tokens 8192
+    temperature 0.7
   }
 }
