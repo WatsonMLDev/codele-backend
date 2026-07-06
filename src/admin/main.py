@@ -53,7 +53,7 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 # ─────────────────────────────────────────────
 
 async def _get_buffer_depth() -> int:
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now().strftime("%Y-%m-%d")
     future = await DailyProblem.find(DailyProblem.id > today_str).to_list()
     return len(future)
 
@@ -93,7 +93,7 @@ async def _get_calendar_data(year: int, month: int) -> dict:
                     return t.theme, label, theme_color_map.get(t.theme, '#58a6ff'), str(t.id)
         return "", "", "", None
 
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now().strftime("%Y-%m-%d")
     first_weekday, num_days = cal.monthrange(year, month)
 
     # Build flat list of all cells to detect theme boundaries
@@ -160,7 +160,7 @@ async def _get_calendar_data(year: int, month: int) -> dict:
 
 @app.get("/", response_class=HTMLResponse)
 async def calendar_page(request: Request, year: int = None, month: int = None):
-    now = datetime.utcnow()
+    now = datetime.now()
     year = year or now.year
     month = month or now.month
     data = await _get_calendar_data(year, month)
@@ -275,7 +275,7 @@ async def generate_page(request: Request, year: int = None, month: int = None):
     next_open_str = next_open.strftime("%Y-%m-%d")
 
     # Default to the current calendar month
-    now = datetime.utcnow()
+    now = datetime.now()
     year = year or now.year
     month = month or now.month
 
