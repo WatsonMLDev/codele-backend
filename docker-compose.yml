@@ -19,7 +19,7 @@ services:
     container_name: codele-api
     restart: unless-stopped
     ports:
-      - "8000:8000" # Cloudflare tunnel will route to this
+      - "8001:8000" # Host port 8001, container port 8000 (Cloudflare tunnel will route to 8001)
     depends_on:
       - mongodb
     env_file:
@@ -35,7 +35,7 @@ services:
     container_name: codele-admin
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8501:8501" # Admin panel explicitly bound to localhost ONLY
+      - "8501:8501" # Exposed to 0.0.0.0 so you can access it across your home network (LAN)
     depends_on:
       - mongodb
     env_file:
